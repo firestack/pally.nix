@@ -18,7 +18,14 @@
 				"x86_64-linux"
 			];
 
-			perSystem = { pkgs, ... }: {
+			perSystem = { pkgs, system, ... }: {
+				packages = let
+					pa11y-attrs = import ./. { inherit pkgs system; };
+				in rec {
+					inherit (pa11y-attrs) pa11y;
+					default = pa11y;
+				};
+
 				devshells.default = { };
 			};
 		};
