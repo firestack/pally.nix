@@ -18,15 +18,39 @@
 				"x86_64-linux"
 			];
 
-			perSystem = { pkgs, system, ... }: {
+			perSystem = { pkgs, system, config, ... }: {
 				packages = let
 					pa11y-attrs = import ./. { inherit pkgs system; };
+					# inherit (pa11y-attrs) pa11y;
 				in rec {
-					inherit (pa11y-attrs) pa11y;
+					pa11y = pa11y-attrs.pa11y.override {
+						PUPPETEER_SKIP_DOWNLOAD = true;
+						nativeBuildInputs = [ pkgs.makeWrapper ];
+						makeWrapperArgs = ["--set PUPPETEER_EXECUTABLE_PATH ${pkgs.chromedriver}/bin/chromedriver"];
+						postFixup = ''
+							wrapProgram $out/bin/pa11y --set PUPPETEER_EXECUTABLE_PATH ${pkgs.chromedriver}/bin/chromedriver
+						'';
+					};
 					default = pa11y;
+
+					chrome-chromedriver = pkgs.runCommand
+						"chromedriver-chrome"
+						{ nativeBuildInputs = [pkgs.makeWrapper]; }
+						''
+							mkdir -p $out/bin
+							ln -s ${pkgs.chromedriver}/bin/chromedriver $out/bin/chrome
+							ln -s ${pkgs.chromedriver}/bin/chromedriver $out/bin/.local-chromium
+						'';
 				};
 
-				devshells.default = { };
+				devshells.default = {
+					packages = [
+						pkgs.nodePackages.node2nix
+
+						config.packages.pa11y
+						config.packages.chrome-chromedriver
+					];
+				};
 			};
 		};
 }
